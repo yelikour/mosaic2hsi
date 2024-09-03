@@ -2,3 +2,4 @@ ExampleData/
 trainedWeights/
 Output/
 Output64/
+utils/Config.py
