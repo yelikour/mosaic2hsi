@@ -36,14 +36,41 @@ class MyDataSet(Dataset):
             print(f"The number of input: {len(self.input_paths)}, The number of ground truth files: {len(self.gt_paths)}")
             raise ValueError("The number of input and ground truth files do not match.")
 
+        # 新增：存储所有有效的256x256裁剪位置
+        self.valid_patches = self._get_valid_patches()
+
+    def _get_valid_patches(self):
+        valid_patches = []
+        for idx, input_path in enumerate(self.input_paths):
+            img = cv2.imread(input_path)
+            h, w = img.shape[:2]
+
+            # 计算可以切割的次数
+            num_patches_h = h // self.crop_size[0]
+            num_patches_w = w // self.crop_size[1]
+
+            if num_patches_h < 1 or num_patches_w < 1:
+                print(f"Skipping image {input_path} with dimensions ({h}, {w}) - too small to extract 256x256 patches.")
+                continue  # 如果图像尺寸不足以切割出至少一个256x256的块，则跳过
+
+            for i in range(num_patches_h):
+                for j in range(num_patches_w):
+                    top = i * self.crop_size[0]
+                    left = j * self.crop_size[1]
+                    valid_patches.append((idx, top, left))
+
+        return valid_patches
 
     def __len__(self):
-        return len(self.input_paths)
+        return len(self.valid_patches)
 
     def __getitem__(self, idx):
-        # 获取第 idx 个文件的路径
-        input_path = self.input_paths[idx]
-        gt_path = self.gt_paths[idx]
+        # 获取裁剪的起始位置和图像索引
+        img_idx, top, left = self.valid_patches[idx]
+
+        # 获取对应的图像路径
+        input_path = self.input_paths[img_idx]
+        gt_path = self.gt_paths[img_idx]
 
         # 读取输入图像和地面真值数据
         input_data = cv2.imread(input_path)
@@ -56,15 +83,8 @@ class MyDataSet(Dataset):
         input_data = input_data / 255.0
         gt_data = gt_data / 65535.0
 
-        # 获取图像的尺寸
-        h, w = input_data.shape[:2]  # 只获取高度和宽度
-        new_h, new_w = self.crop_size
-
-        # 随机裁剪起始位置
-        top = np.random.randint(0, h - new_h + 1)
-        left = np.random.randint(0, w - new_w + 1)
-
         # 裁剪图像
+        new_h, new_w = self.crop_size
         input_data = input_data[top:top + new_h, left:left + new_w, :]
         gt_data = gt_data[top:top + new_h, left:left + new_w, :]
 

@@ -4,7 +4,7 @@ import os
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 import tifffile
-from model import MST3
+from model import MST3, ParallelMultiscaleNet, MultiscaleNet, ResidualNet, MST3, MST3C
 from Hyper2RGBConverter import load_rgb_data
 
 def single2mosaic(img):
@@ -95,10 +95,10 @@ def convert_and_save_rgb(npy_file, rgb_data, output_rgb_folder):
 
 
 def main():
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:6' if torch.cuda.is_available() else 'cpu')
     base_train_data_dir = 'ExampleData/0828'
-    save_npy_folder = '/home/wangruozhang/mosaic2hsi/Output/npy'
-    output_rgb_folder = '/home/wangruozhang/mosaic2hsi/Output/RGB'
+    save_npy_folder = '/home/wangruozhang/mosaic2hsi/Output0903/npy'
+    output_rgb_folder = '/home/wangruozhang/mosaic2hsi/Output0903/RGB'
     rgb_curve_path = '/home/wangruozhang/Hyper2Mosaic/Dataset/CIE/RGBTransCurve'
 
     if not os.path.exists(save_npy_folder):
@@ -107,8 +107,9 @@ def main():
         os.makedirs(output_rgb_folder)
 
     # Load the model
+    # model = ParallelMultiscaleNet.PMSNet().to(device)
     model = MST3.MST(device).to(device)
-    model.load_state_dict(torch.load('trainedWeights/MST3_final.pth', map_location=device))
+    model.load_state_dict(torch.load('trainedWeights/MST3_best_PSNR32.23959486205875_(2024, 9, 3).pth', map_location=device))
     model.eval()
 
     # Load RGB data

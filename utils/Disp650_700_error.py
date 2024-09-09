@@ -51,7 +51,7 @@ for gt_file, output_file in tqdm(zip(gt_files, output_files), total=len(gt_files
         axs[0, i].set_title(f'GT Channel {i + 1}')
         axs[0, i].axis('off')
 
-        im = axs[1, i].imshow(difference, cmap='coolwarm')
+        im = axs[1, i].imshow(difference, cmap='coolwarm', vmin=-1, vmax=1)
         axs[1, i].set_title(f'Diff Channel {i + 1}')
         axs[1, i].axis('off')
 

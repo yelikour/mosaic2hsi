@@ -18,6 +18,12 @@ from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import structural_similarity as ssim
 import matplotlib.pyplot as plt  # 用于绘制 loss 曲线
 
+# 保存当前日期
+Date = time.localtime(time.time())[:3]  # (年, 月, 日)
+'''
+Date = time.strftime("%Y-%m-%d", time.localtime())
+'''
+
 def calculate_metrics(outputs, targets):
     psnr_values = []
     ssim_values = []
@@ -175,12 +181,12 @@ def main():
         if psnr_mean > best_psnr:
             best_psnr = psnr_mean
             best_epoch = epoch + 1
-            best_model_path = f'/home/wangruozhang/mosaic2hsi/trainedWeights/{args.model}_best_PSNR{best_psnr}.pth'
+            best_model_path = f'/home/wangruozhang/mosaic2hsi/trainedWeights/{args.model}_best_PSNR{best_psnr}_{Date}.pth'
             torch.save(model.state_dict(), best_model_path)
             print(f'New best model found at epoch {best_epoch} with PSNR: {best_psnr}. Model saved to {best_model_path}')
 
     # 保存最终模型
-    final_model_path = f'/home/wangruozhang/mosaic2hsi/trainedWeights/{args.model}_final.pth'
+    final_model_path = f'/home/wangruozhang/mosaic2hsi/trainedWeights/{args.model}_final_{Date}.pth'
     torch.save(model.state_dict(), final_model_path)
     print(f'Final model saved to {final_model_path}')
 
