@@ -12,19 +12,27 @@ from torch.utils.data import DataLoader
 from Hyper2RGBConverter import load_rgb_data
 from model import MST27
 from torch.utils.data import Dataset
+import tifffile
 
 def main():
     device = torch.device('cuda:6' if torch.cuda.is_available() else 'cpu')
     base_train_data_dir = '/home/wangruozhang/Hyper2Mosaic/Dataset/PixelRGB_LED'
     save_npy_folder = '/home/wangruozhang/mosaic2hsi/Output0909/npy'
+    rgb_curve_path = '/home/wangruozhang/Hyper2Mosaic/Dataset/CIE/RGBTransCurve'
+    output_rgb_folder = '/home/wangruozhang/mosaic2hsi/Output0909/RGB'
 
     if not os.path.exists(save_npy_folder):
         os.makedirs(save_npy_folder)
+    if not os.path.exists(output_rgb_folder):
+        os.makedirs(output_rgb_folder)
 
     # Load the model
     model = MST27.MST(device).to(device)
-    model.load_state_dict(torch.load('!!!!!!!!!!!!!!!!!!!!!!!!!!', map_location=device))
+    model.load_state_dict(torch.load('trainedWeights/MST27_best_PSNR32.224612498053496_(2024, 9, 9).pth', map_location=device))
     model.eval()
+
+    # Load RGB data
+    rgb_data = load_rgb_data(rgb_curve_path)
 
     # Prepare the dataset and dataloader
     dataset = MyDataSet(dataPath=base_train_data_dir)
@@ -42,6 +50,8 @@ def main():
         npy_filename = os.path.join(save_npy_folder, f"output_{i}.npy")
         np.save(npy_filename, output.cpu().numpy())
 
+        # Convert .npy file to RGB and save as TIFF
+        convert_and_save_rgb(npy_filename, rgb_data, output_rgb_folder)
 
 def create_mosaic(img):
     """Creates a 3-channel mosaic image from an RGB image."""
@@ -56,7 +66,7 @@ def create_mosaic(img):
     return mosaic
 
 class MyDataSet(Dataset):
-    def __init__(self, dataPath, gtPath, transform=None):
+    def __init__(self, dataPath, transform=None):
         self.dataPath = dataPath
         self.transform = transform
 
@@ -88,6 +98,41 @@ class MyDataSet(Dataset):
 
         return {'mosaic': input_data}
 
+def convert_and_save_rgb(npy_file, rgb_data, output_rgb_folder):
+    # Load the output from .npy file
+    output_tensor = np.load(npy_file)
+    output_tensor = output_tensor.squeeze()  # Remove batch dimension
+    # Ensure output is in [c, h, w] format
+
+    selected_wavelengths = np.arange(400, 661, 10)
+    red_values = rgb_data.loc[rgb_data['wavelength'].isin(selected_wavelengths), 'red'].values
+    green_values = rgb_data.loc[rgb_data['wavelength'].isin(selected_wavelengths), 'green'].values
+    blue_values = rgb_data.loc[rgb_data['wavelength'].isin(selected_wavelengths), 'blue'].values
+
+    interpolated_data = np.load('/home/wangruozhang/Hyper2Mosaic/Dataset/CIE/normalized_wavelengths_and_integrals.npy')
+    intensity_values = interpolated_data[:, 1]
+
+    height, width = output_tensor.shape[1], output_tensor.shape[2]
+    R = np.zeros((height, width))
+    G = np.zeros((height, width))
+    B = np.zeros((height, width))
+
+    for i in range(len(selected_wavelengths)):
+        R += output_tensor[i, :, :] * red_values[i] * intensity_values[i]
+        G += output_tensor[i, :, :] * green_values[i] * intensity_values[i]
+        B += output_tensor[i, :, :] * blue_values[i] * intensity_values[i]
+
+    R = np.clip(R / np.max(R) * 255, 0, 255).astype(np.uint8)
+    G = np.clip(G / np.max(G) * 255, 0, 255).astype(np.uint8)
+    B = np.clip(B / np.max(B) * 255, 0, 255).astype(np.uint8)
+
+    RGB_image = np.stack([R, G, B], axis=-1)
+
+    base_filename = os.path.splitext(os.path.basename(npy_file))[0]
+    output_tiff_file = os.path.join(output_rgb_folder, f"{base_filename}.tiff")
+
+    tifffile.imwrite(output_tiff_file, RGB_image)
+    # print(f"RGB image saved as TIFF at: {output_tiff_file}")
 
 if __name__ == '__main__':
     main()

@@ -8,7 +8,7 @@ base_file_path = 'ExampleData/CompareSpectrum'              #
 name = '0000'                                               #
 # 指定你要比较的点的坐标 (height, width)                        #
 ''''''''''''''''''''''''                                    #
-point = (830, 380)                                          #
+point = (880, 180)                                          #
 ''''''''''''''''''''''''                                    #
 #############################################################
 
@@ -51,16 +51,11 @@ spectrum4 = data4[:, point[0], point[1]]
 
 spectrum2_min = spectrum2.min()
 spectrum2_max = spectrum2.max()
-spectrum2_normalized = (spectrum2 - spectrum2_min) / (spectrum2_max - spectrum2_min)
+spectrum2_normalized = spectrum2/ 65536
 
 # spectrum3_min = spectrum3.min()
 # spectrum3_max = spectrum3.max()
 # spectrum3_normalized = (spectrum3 - spectrum3_min) / (spectrum3_max - spectrum3_min)
-
-spectrum4_min = spectrum4.min()
-spectrum4_max = spectrum4.max()
-spectrum4_normalized = (spectrum4 - spectrum4_min) / (spectrum4_max - spectrum4_min)
-
 # 检查归一化后的光谱数据是否为零
 # if np.all(spectrum1_normalized == 0):
 #     print(f"Warning: All normalized values in spectrum1 at point {point} are zero.")
@@ -68,8 +63,6 @@ if np.all(spectrum2_normalized == 0):
     print(f"Warning: All normalized values in spectrum2 at point {point} are zero.")
 # if np.all(spectrum3_normalized == 0):
 #     print(f"Warning: All normalized values in spectrum3 at point {point} are zero.")
-if np.all(spectrum4_normalized == 0):
-    print(f"Warning: All normalized values in spectrum4 at point {point} are zero.")
 
 # 显示并标记图片
 plt.figure(figsize=(12, 6))
@@ -109,7 +102,7 @@ plt.figure(figsize=(10, 6))
 # plt.plot(wavelengths, spectrum1_normalized, label='Output (normalized)')
 plt.plot(wavelengths, spectrum2_normalized, label='Original (normalized)')
 # plt.plot(wavelengths, spectrum3_normalized, label='New Output (normalized)')
-plt.plot(wavelengths, spectrum4_normalized, label='Final (normalized)')
+plt.plot(wavelengths, spectrum4, label='Final (normalized)')
 plt.xlabel('Wavelength (nm)')
 plt.ylabel('Normalized Intensity')
 plt.title(f'Normalized Spectrum Comparison at Point {point}')
